@@ -673,7 +673,7 @@ cql::cql_session_impl_t::get_connection(
         is_setup_prepared_successful = setup_prepared_statements(conn, stream);
         
         
-        // We also maintain a session-wide dictionary (vector, really) that maps
+        // We also maintain a connection-wide dictionary (vector, really) that maps
         // from stream IDs to recent queries' strings. It is used to retrieve the
         // the recipes for prepared queries if needed by a connection.
         if (!(stream->is_invalid()) && query != NULL) {
@@ -696,6 +696,59 @@ cql::cql_session_impl_t::get_connection(
 cql::cql_uuid_t
 cql::cql_session_impl_t::id() const {
     return _uuid;
+}
+
+void
+cql::cql_session_impl_t::retry_callback_query(
+    const boost::shared_ptr<cql_query_t>& query_,
+    cql_connection_t*                     connection,
+    const cql::cql_stream_t&              stream)
+{
+    connection->set_for_retry(stream);
+    
+    // TODO: fixed number of retries (==1) is bad. Store it in the query and increment.
+    if (query_->retry_policy()
+              ->read_timeout(*query_, query_->consistency(), 1, 0, false, 1).retry_decision()
+            == CQL_RETRY_DECISION_RETRY) {
+        query(query_);
+    }
+}
+
+
+void
+cql::cql_session_impl_t::retry_callback_prepare(
+    const boost::shared_ptr<cql_query_t>& query_,
+    cql_connection_t*                     connection,
+    const cql::cql_stream_t&              stream)
+{
+    connection->set_for_retry(stream);
+    
+    // TODO: fixed number of retries (==1) is bad. Store it in the query and increment.
+    if (query_->retry_policy()
+              ->read_timeout(*query_, query_->consistency(), 1, 0, false, 1).retry_decision()
+        == CQL_RETRY_DECISION_RETRY) {
+        prepare(query_);
+    }
+}
+
+void
+cql::cql_session_impl_t::retry_callback_execute(
+    const boost::shared_ptr<cql_execute_t>& message,
+    cql_connection_t*                       connection,
+    const cql::cql_stream_t&                stream)
+{
+//TODO: no retry_policy() in cql_execute_t, why?
+    
+    /*
+    connection->set_for_retry(stream);
+    
+    // TODO: fixed number of retries (==1) is bad. Store it in the query and increment.
+    if (message->retry_policy()
+               ->read_timeout(*message, message->consistency(), 1, 0, false, 1).retry_decision()
+            == CQL_RETRY_DECISION_RETRY) {
+        execute(message);
+    }
+     */
 }
 
 #ifdef _DEBUG

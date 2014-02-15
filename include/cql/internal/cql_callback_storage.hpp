@@ -21,6 +21,7 @@ public:
         size_t size) :
         _contents(size),
         _is_used(size, false),
+        _is_ok(size, true),
         _free_indexes()
 	{
         boost::mutex::scoped_lock lock(_mutex);
@@ -46,6 +47,7 @@ public:
         size_t index = _free_indexes.top();
         _free_indexes.pop();
 		_is_used[index] = true;
+        _is_ok[index]   = true;
 		return cql_stream_t::from_stream_id(index);
 	}
 
@@ -90,7 +92,7 @@ public:
     {
         boost::mutex::scoped_lock lock(_mutex);
 		if (stream.is_invalid()) {
-			throw std::invalid_argument("stream is invalid.");
+			throw std::invalid_argument("stream is invalid");
         }
 
 		long index = stream.stream_id();
@@ -107,13 +109,41 @@ public:
     {
         boost::mutex::scoped_lock lock(_mutex);
 		if (stream.is_invalid()) {
-			throw std::invalid_argument("index is invalid.");
+			throw std::invalid_argument("index is invalid");
         }
 
 		long index = stream.stream_id();
         check_boundaries(index);
 		_contents[index] = value;
 	}
+    
+    /** We say that a stream is OK if the associated query did not fail 
+        and (the query) is not being retried at the moment. */
+    bool
+    is_set_for_retry(
+        const cql_stream_t& stream) const
+    {
+		if (stream.is_invalid()) {
+			throw std::invalid_argument("index is invalid");
+        }
+        
+		long index = stream.stream_id();
+        check_boundaries(index);
+        return _is_ok[index];
+    }
+
+    void
+    set_stream_for_retry(
+        const cql_stream_t& stream)
+    {
+		if (stream.is_invalid()) {
+			throw std::invalid_argument("index is invalid");
+        }
+        
+		long index = stream.stream_id();
+        check_boundaries(index);
+        _is_ok[index] = false;
+    }
 
 private:
     void
@@ -121,13 +151,14 @@ private:
         const long index) const
     {
         if (index < 0 || (unsigned) index >= _is_used.size()) {
-            throw std::out_of_range("stream id is out of range.");
+            throw std::out_of_range("stream id is out of range");
         }
     }
 
     boost::mutex       _mutex;
     std::vector<TType> _contents;
-    std::vector<bool>  _is_used;
+    std::vector<bool>  _is_used,
+                       _is_ok;
     std::stack<long>   _free_indexes;
 };
 

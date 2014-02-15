@@ -299,6 +299,21 @@ public:
     */
     virtual void
     reconnect() = 0;
+    
+    /** Sets the operation associated with the given stream to a failed state. It enables 
+        higher-level routines to detect the operations that need retrying.
+        Recommended only for advanced users.
+    */
+    virtual void
+    set_for_retry(const cql_stream_t& stream) = 0;
+            
+    /** Checks whether the operation associated with given stream was registered for retrying
+        (possibly by a call to set_for_retry()).
+        Recommended only for advanced users.
+    */
+    virtual bool
+    is_set_for_retry(const cql_stream_t& stream) = 0;
+
 
 #ifdef _DEBUG
 	virtual void 

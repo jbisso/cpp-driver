@@ -163,6 +163,24 @@ public:
                           const std::vector<cql_byte_t>& query_id,
                           const std::string& query_text);
 
+    void
+    retry_callback_query(
+        const boost::shared_ptr<cql_query_t>& query,
+        cql_connection_t*                     connection,
+        const cql::cql_stream_t&              stream);
+
+    void
+    retry_callback_prepare(
+        const boost::shared_ptr<cql_query_t>& query,
+        cql_connection_t*                     connection,
+        const cql::cql_stream_t&              stream);
+
+    void
+    retry_callback_execute(
+        const boost::shared_ptr<cql_execute_t>& message,
+        cql_connection_t*                       connection,
+        const cql::cql_stream_t&                stream);
+
 #ifdef _DEBUG
 	void 
 	inject_random_connection_lowest_layer_shutdown();
@@ -332,7 +350,7 @@ private:
     long
     get_max_connections_number(
         const boost::shared_ptr<cql_host_t>& host);
-
+    
     friend class cql_trashcan_t;
     typedef boost::ptr_map<cql_endpoint_t, cql_connections_collection_t> connection_pool_t;
 

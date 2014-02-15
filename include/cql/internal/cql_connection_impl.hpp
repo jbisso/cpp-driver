@@ -265,6 +265,13 @@ public:
         boost::shared_ptr<cql_promise_t<cql_future_result_t> > promise(
             new cql_promise_t<cql_future_result_t>());
 
+        if (query_->has_retry_policy()) {
+            promise->start_timeout(_io_service,
+                                   query_timeout(),
+                                   boost::bind(&cql_session_impl_t::retry_callback_query,
+                                               _session_ptr, query_, this, query_->stream()));
+        }
+        
 		query(query_,
               boost::bind(&cql_connection_impl_t::_statement_future_callback, this, promise, ::_1, ::_2, ::_3),
               boost::bind(&cql_connection_impl_t::_statement_future_errback, this, promise, ::_1, ::_2, ::_3));
@@ -279,6 +286,10 @@ public:
         boost::shared_ptr<cql_promise_t<cql_future_result_t> > promise(
             new cql_promise_t<cql_future_result_t>());
 
+        promise->start_timeout(_io_service,
+                               query_timeout(),
+                               boost::bind(&cql_session_impl_t::retry_callback_prepare,
+                                           _session_ptr, query, this, query->stream()));
         prepare(query,
                 boost::bind(&cql_connection_impl_t::_statement_future_callback, this, promise, ::_1, ::_2, ::_3),
                 boost::bind(&cql_connection_impl_t::_statement_future_errback, this, promise, ::_1, ::_2, ::_3));
@@ -293,6 +304,10 @@ public:
         boost::shared_ptr<cql_promise_t<cql_future_result_t> > promise(
             new cql_promise_t<cql_future_result_t>());
 
+        promise->start_timeout(_io_service,
+                               query_timeout(),
+                               boost::bind(&cql_session_impl_t::retry_callback_execute,
+                                           _session_ptr, message, this, message->stream()));
         execute(message,
                 boost::bind(&cql_connection_impl_t::_statement_future_callback, this, promise, ::_1, ::_2, ::_3),
                 boost::bind(&cql_connection_impl_t::_statement_future_errback, this, promise, ::_1, ::_2, ::_3));
@@ -538,6 +553,18 @@ public:
         const std::string& query_string)
     {
         _stream_id_vs_query_string[stream_id] = query_string;
+    }
+    
+    void
+    set_for_retry(const cql_stream_t& stream)
+    {
+        _callback_storage.set_stream_for_retry(stream);
+    }
+    
+    bool
+    is_set_for_retry(const cql_stream_t& stream)
+    {
+        return _callback_storage.is_set_for_retry(stream);
     }
 
 #ifdef _DEBUG
@@ -1093,6 +1120,12 @@ private:
         }
     }
 	
+    static boost::posix_time::time_duration
+    query_timeout() {
+        // TODO: get rid of the arbitrary value!
+        return boost::posix_time::seconds(10);
+    }
+                               
 	boost::mutex                             _mutex;
     
     boost::asio::io_service&                 _io_service;
@@ -1124,7 +1157,6 @@ private:
                                              _selected_keyspace_name;
     
     std::vector<std::string>                 _stream_id_vs_query_string;
-
     cql_prepare_statements_t                 _prepare_statements;
     
     cql_session_impl_t*                      _session_ptr;
