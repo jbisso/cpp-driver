@@ -30,7 +30,7 @@ the Cassandra Query Language version 3 (CQL3) and Cassandra's binary protocol.
 - Query tracing
 
 ## Building
-The library known to work on Ubuntu >= 10.04.4 LTS (Lucid Lynx), and OSX 10.8.3 with Clang/libc++. The build-chain is CMake, so it should be fairly straightforward to get cassandra to build on other systems, but no attempt has been made to do so. Please refer to particular build instructions in separate files in this folder.
+The library known to work on Ubuntu >= 10.04.4 LTS (Lucid Lynx), and OSX 10.8.3 with Clang/libc++. The build-chain is CMake, so it should be fairly straightforward to get the driver to build on other systems, but no attempt has been made to do so. Please refer to particular build instructions in separate files in this folder.
 
 The library has two dependencies [Boost::Asio](http://www.boost.org/doc/libs/1_53_0/doc/html/boost_asio.html) and [OpenSSL](http://www.openssl.org/). It's required that Boost::Asio be installed prior to build. If OpenSSL isn't present (OSX 10.8) cassandra will automaticly download, build, and staticly link the library.
 
@@ -64,7 +64,6 @@ main(int argc, char**)
 
     // initialize cql
     cql_initialize();
-    cql_thread_infrastructure_t cql_ti;
 
     // Suppose you have the Cassandra cluster at 127.0.0.1,
     // listening at default port (9042).
